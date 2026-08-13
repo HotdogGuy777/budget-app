@@ -40,6 +40,12 @@ html, body {
 }
 .topbar h1 { font-size: 1.3rem; margin: 0; }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .icon-btn {
   background: none;
   border: none;
@@ -47,10 +53,12 @@ html, body {
   font-size: 1.4rem;
   padding: 4px 8px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 #app {
-  padding: 0 16px 110px;
+  padding: 0 16px calc(160px + env(safe-area-inset-bottom, 0px));
   max-width: 480px;
   margin: 0 auto;
 }
@@ -257,6 +265,18 @@ html, body {
 }
 .add-actions .btn-secondary, .add-actions .btn-primary { flex: 1; }
 
+.delete-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 0.9rem;
+  padding: 16px 0 4px;
+  cursor: pointer;
+}
+
 /* Categories setup */
 .setup-block { margin: 16px 0; }
 .field-label {
@@ -322,6 +342,13 @@ html, body {
 .new-category-form input:last-of-type { flex: 1; }
 .new-category-form button { flex-shrink: 0; }
 
+.backup-hint { margin: 8px 0 12px; }
+.backup-actions {
+  display: flex;
+  gap: 10px;
+}
+.backup-actions button { flex: 1; }
+
 /* History */
 .history-filters { margin: 12px 0; }
 #history-filter-category {
@@ -347,6 +374,7 @@ html, body {
   padding: 12px 14px;
   border-radius: 10px;
   margin-bottom: 6px;
+  cursor: pointer;
 }
 .history-row .hr-main { display: flex; flex-direction: column; }
 .history-row .hr-cat { font-weight: 600; }
@@ -360,3 +388,41 @@ html, body {
   margin-left: 10px;
   cursor: pointer;
 }
+
+/* Trends */
+.trend-overall-row {
+  display: flex;
+  gap: 32px;
+}
+.trend-amount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.trends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.trend-row {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.trend-row-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.trend-row-name { font-weight: 600; }
+.trend-row-figures {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.trend-delta { font-weight: 600; }
+.trend-delta.up { color: var(--red); }
+.trend-delta.down { color: var(--green); }

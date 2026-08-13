@@ -18,7 +18,16 @@
 
 <header class="topbar">
   <h1 id="topbar-title">Budget</h1>
-  <button id="btn-history" class="icon-btn" aria-label="History">☰</button>
+  <div class="topbar-actions">
+    <button id="btn-trends" class="icon-btn" aria-label="Trends">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="11" width="4" height="8" rx="1" fill="currentColor"/>
+        <rect x="9" y="6" width="4" height="13" rx="1" fill="currentColor"/>
+        <rect x="15" y="2" width="4" height="17" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <button id="btn-history" class="icon-btn" aria-label="History">☰</button>
+  </div>
 </header>
 
 <main id="app">
@@ -73,6 +82,8 @@
       <button id="btn-cancel-add" class="btn-secondary">Cancel</button>
       <button id="btn-save-add" class="btn-primary">Save</button>
     </div>
+
+    <button id="btn-delete-add" class="delete-link hidden">Delete this transaction</button>
   </section>
 
   <!-- CATEGORIES SETUP -->
@@ -92,6 +103,14 @@
     </form>
 
     <button id="btn-done-categories" class="btn-secondary full-width">Done</button>
+
+    <h2 class="section-heading">Backup</h2>
+    <p class="muted small backup-hint">Your data only lives on this device. Export it now and then to keep a copy.</p>
+    <div class="backup-actions">
+      <button id="btn-export" class="btn-secondary">Export backup</button>
+      <button id="btn-import" class="btn-secondary">Import backup</button>
+    </div>
+    <input id="import-file-input" type="file" accept="application/json" class="hidden">
   </section>
 
   <!-- HISTORY -->
@@ -101,6 +120,26 @@
     </div>
     <div id="history-list" class="history-list"></div>
     <div id="history-empty" class="empty-state hidden"><p>No transactions yet.</p></div>
+  </section>
+
+  <!-- TRENDS -->
+  <section id="view-trends" class="view hidden">
+    <div class="overall-card">
+      <div class="trend-overall-row">
+        <div>
+          <div class="muted small">This month</div>
+          <div id="trend-overall-this" class="trend-amount">$0</div>
+        </div>
+        <div>
+          <div class="muted small">Last month</div>
+          <div id="trend-overall-last" class="trend-amount muted">$0</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="trends-list" class="trends-list"></div>
+
+    <div id="trends-empty" class="empty-state hidden"><p>Not enough history yet — add expenses across a couple months to see trends.</p></div>
   </section>
 
 </main>

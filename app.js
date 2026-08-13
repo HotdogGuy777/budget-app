@@ -50,19 +50,35 @@
     return monthKey(new Date());
   }
 
-  function transactionsThisMonth() {
-    const key = currentMonthKey();
+  function shiftMonthKey(key, delta) {
+    const [y, m] = key.split("-").map(Number);
+    return monthKey(new Date(y, m - 1 + delta, 1));
+  }
+
+  function transactionsForMonth(key) {
     return data.transactions.filter((t) => monthKey(new Date(t.date)) === key);
   }
 
-  function spentByCategory(categoryId) {
-    return transactionsThisMonth()
+  function transactionsThisMonth() {
+    return transactionsForMonth(currentMonthKey());
+  }
+
+  function spentByCategoryForMonth(categoryId, key) {
+    return transactionsForMonth(key)
       .filter((t) => t.categoryId === categoryId)
       .reduce((sum, t) => sum + t.amount, 0);
   }
 
+  function spentByCategory(categoryId) {
+    return spentByCategoryForMonth(categoryId, currentMonthKey());
+  }
+
+  function totalSpentForMonth(key) {
+    return transactionsForMonth(key).reduce((sum, t) => sum + t.amount, 0);
+  }
+
   function totalSpentThisMonth() {
-    return transactionsThisMonth().reduce((sum, t) => sum + t.amount, 0);
+    return totalSpentForMonth(currentMonthKey());
   }
 
   function fmt(n) {
@@ -79,22 +95,38 @@
 
   // ---------- view switching ----------
 
-  const views = ["dashboard", "add", "categories", "history"];
+  const views = ["dashboard", "add", "categories", "history", "trends"];
 
-  function showView(name) {
+  function showView(name, opts = {}) {
     views.forEach((v) => {
       document.getElementById(`view-${v}`).classList.toggle("hidden", v !== name);
     });
     document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.view === name);
     });
-    document.getElementById("topbar-title").textContent =
-      { dashboard: "Budget", add: "Add expense", categories: "Categories", history: "History" }[name];
+    document.getElementById("btn-fab").classList.toggle("hidden", name === "add" || name === "categories");
+
+    if (name === "add") {
+      if (opts.editTransaction) {
+        startEditTransaction(opts.editTransaction);
+      } else {
+        resetAddForm();
+      }
+    }
+
+    const titles = {
+      dashboard: "Budget",
+      add: editingTransactionId ? "Edit expense" : "Add expense",
+      categories: "Categories",
+      history: "History",
+      trends: "Trends",
+    };
+    document.getElementById("topbar-title").textContent = titles[name];
 
     if (name === "dashboard") renderDashboard();
     if (name === "categories") renderCategoriesEditor();
     if (name === "history") renderHistory();
-    if (name === "add") resetAddForm();
+    if (name === "trends") renderTrends();
   }
 
   // ---------- dashboard ----------
@@ -158,13 +190,29 @@
 
   let addAmount = "0";
   let addCategoryId = null;
+  let editingTransactionId = null;
 
   function resetAddForm() {
+    editingTransactionId = null;
     addAmount = "0";
     addCategoryId = data.categories[0]?.id ?? null;
     document.getElementById("note-input").value = "";
     document.getElementById("note-input").classList.add("hidden");
     document.getElementById("note-toggle").classList.remove("hidden");
+    document.getElementById("btn-delete-add").classList.add("hidden");
+    renderAddAmount();
+    renderCategoryChips();
+  }
+
+  function startEditTransaction(t) {
+    editingTransactionId = t.id;
+    addAmount = String(t.amount);
+    addCategoryId = t.categoryId;
+    const noteInput = document.getElementById("note-input");
+    noteInput.value = t.note || "";
+    noteInput.classList.toggle("hidden", !t.note);
+    document.getElementById("note-toggle").classList.toggle("hidden", !!t.note);
+    document.getElementById("btn-delete-add").classList.remove("hidden");
     renderAddAmount();
     renderCategoryChips();
   }
@@ -213,13 +261,31 @@
     if (!amount || amount <= 0) return;
     if (!addCategoryId) return;
 
-    data.transactions.push({
-      id: uid(),
-      amount,
-      categoryId: addCategoryId,
-      note: document.getElementById("note-input").value.trim(),
-      date: new Date().toISOString(),
-    });
+    const note = document.getElementById("note-input").value.trim();
+
+    if (editingTransactionId) {
+      const t = data.transactions.find((x) => x.id === editingTransactionId);
+      if (t) {
+        t.amount = amount;
+        t.categoryId = addCategoryId;
+        t.note = note;
+      }
+    } else {
+      data.transactions.push({
+        id: uid(),
+        amount,
+        categoryId: addCategoryId,
+        note,
+        date: new Date().toISOString(),
+      });
+    }
+    saveData();
+    showView("dashboard");
+  }
+
+  function deleteEditingTransaction() {
+    if (!editingTransactionId) return;
+    data.transactions = data.transactions.filter((x) => x.id !== editingTransactionId);
     saveData();
     showView("dashboard");
   }
@@ -298,8 +364,95 @@
         saveData();
         renderHistory();
       });
+      row.addEventListener("click", (e) => {
+        if (e.target.closest(".delete-btn")) return;
+        showView("add", { editTransaction: t });
+      });
       list.appendChild(row);
     });
+  }
+
+  // ---------- trends ----------
+
+  function renderTrends() {
+    const thisKey = currentMonthKey();
+    const lastKey = shiftMonthKey(thisKey, -1);
+
+    document.getElementById("trend-overall-this").textContent = `$${fmt(totalSpentForMonth(thisKey))}`;
+    document.getElementById("trend-overall-last").textContent = `$${fmt(totalSpentForMonth(lastKey))}`;
+
+    const list = document.getElementById("trends-list");
+    const empty = document.getElementById("trends-empty");
+    list.innerHTML = "";
+
+    const hasLastMonthData = transactionsForMonth(lastKey).length > 0;
+    if (data.categories.length === 0 || !hasLastMonthData) {
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+
+    data.categories.forEach((cat) => {
+      const thisSpent = spentByCategoryForMonth(cat.id, thisKey);
+      const lastSpent = spentByCategoryForMonth(cat.id, lastKey);
+      const delta = thisSpent - lastSpent;
+      const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "";
+      const deltaText = delta === 0
+        ? "no change"
+        : `${delta > 0 ? "+" : "−"}$${fmt(Math.abs(delta))} vs last month`;
+
+      const row = document.createElement("div");
+      row.className = "trend-row";
+      row.innerHTML = `
+        <div class="trend-row-top">
+          <span class="trend-row-name">${escapeHtml(cat.name)}</span>
+          <span class="trend-delta ${deltaClass}">${deltaText}</span>
+        </div>
+        <div class="trend-row-figures">
+          <span>This month: $${fmt(thisSpent)}</span>
+          <span>Last month: $${fmt(lastSpent)}</span>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- backup ----------
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `budget-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!Array.isArray(parsed.categories) || !Array.isArray(parsed.transactions)) {
+          throw new Error("invalid backup shape");
+        }
+        if (!confirm("Import this backup? It will replace all current data on this device.")) return;
+        data = {
+          overallBudget: parsed.overallBudget ?? null,
+          categories: parsed.categories,
+          transactions: parsed.transactions,
+        };
+        saveData();
+        renderCategoriesEditor();
+        alert("Backup imported.");
+      } catch {
+        alert("That file doesn't look like a valid budget backup.");
+      }
+    };
+    reader.readAsText(file);
   }
 
   // ---------- wiring ----------
@@ -310,6 +463,7 @@
 
   document.getElementById("btn-fab").addEventListener("click", () => showView("add"));
   document.getElementById("btn-history").addEventListener("click", () => showView("history"));
+  document.getElementById("btn-trends").addEventListener("click", () => showView("trends"));
   document.getElementById("btn-empty-setup")?.addEventListener("click", () => showView("categories"));
 
   document.getElementById("keypad").addEventListener("click", (e) => {
@@ -325,6 +479,7 @@
 
   document.getElementById("btn-cancel-add").addEventListener("click", () => showView("dashboard"));
   document.getElementById("btn-save-add").addEventListener("click", saveTransaction);
+  document.getElementById("btn-delete-add").addEventListener("click", deleteEditingTransaction);
 
   document.getElementById("overall-budget-input").addEventListener("change", (e) => {
     const v = parseFloat(e.target.value);
@@ -350,6 +505,16 @@
   document.getElementById("btn-done-categories").addEventListener("click", () => showView("dashboard"));
   document.getElementById("history-filter-category").addEventListener("change", renderHistory);
 
+  document.getElementById("btn-export").addEventListener("click", exportData);
+  document.getElementById("btn-import").addEventListener("click", () => {
+    document.getElementById("import-file-input").click();
+  });
+  document.getElementById("import-file-input").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importData(file);
+    e.target.value = "";
+  });
+
   // ---------- PWA ----------
 
   if ("serviceWorker" in navigator) {
@@ -360,5 +525,5 @@
 
   // ---------- init ----------
 
-  showView("dashboard");
+  showView(location.hash === "#add" ? "add" : "dashboard");
 })();
