@@ -2,8 +2,14 @@
   const STORAGE_KEY = "budget-app-data-v1";
 
   const DEFAULT_DATA = {
-    overallBudget: null,
-    categories: [],
+    overallBudget: 2360,
+    categories: [
+      { id: "gas", name: "Gas", limit: 120 },
+      { id: "food", name: "Food", limit: 450 },
+      { id: "hobby", name: "Hobby items", limit: 250 },
+      { id: "misc", name: "Anything else", limit: 150 },
+      { id: "savings", name: "Savings", limit: 1390 },
+    ],
     transactions: [],
   };
 
