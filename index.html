@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Budget</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1 id="topbar-title">Budget</h1>
+  <button id="btn-history" class="icon-btn" aria-label="History">☰</button>
+</header>
+
+<main id="app">
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="view">
+    <div class="overall-card">
+      <div class="overall-labels">
+        <span id="overall-spent">$0</span>
+        <span id="overall-limit" class="muted">of $0</span>
+      </div>
+      <div class="bar"><div id="overall-bar" class="bar-fill"></div></div>
+      <div id="overall-sub" class="muted small"></div>
+    </div>
+
+    <div id="category-list" class="category-list"></div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <p>No categories yet.</p>
+      <button id="btn-empty-setup" class="btn-secondary">Set up your budget</button>
+    </div>
+  </section>
+
+  <!-- QUICK ADD -->
+  <section id="view-add" class="view hidden">
+    <div class="add-amount-wrap">
+      <div class="add-amount-display">$<span id="amount-display">0</span></div>
+      <div id="add-category-name" class="muted">choose a category below</div>
+    </div>
+
+    <div class="chip-row" id="category-chips"></div>
+
+    <div id="note-toggle" class="note-toggle">+ add note</div>
+    <input id="note-input" class="note-input hidden" type="text" placeholder="Note (optional)" maxlength="60">
+
+    <div class="keypad" id="keypad">
+      <button data-key="1">1</button>
+      <button data-key="2">2</button>
+      <button data-key="3">3</button>
+      <button data-key="4">4</button>
+      <button data-key="5">5</button>
+      <button data-key="6">6</button>
+      <button data-key="7">7</button>
+      <button data-key="8">8</button>
+      <button data-key="9">9</button>
+      <button data-key=".">.</button>
+      <button data-key="0">0</button>
+      <button data-key="back" aria-label="Backspace">⌫</button>
+    </div>
+
+    <div class="add-actions">
+      <button id="btn-cancel-add" class="btn-secondary">Cancel</button>
+      <button id="btn-save-add" class="btn-primary">Save</button>
+    </div>
+  </section>
+
+  <!-- CATEGORIES SETUP -->
+  <section id="view-categories" class="view hidden">
+    <div class="setup-block">
+      <label class="field-label" for="overall-budget-input">Overall monthly budget (optional)</label>
+      <input id="overall-budget-input" type="number" inputmode="decimal" placeholder="e.g. 2500">
+    </div>
+
+    <h2 class="section-heading">Categories</h2>
+    <div id="categories-editor" class="categories-editor"></div>
+
+    <form id="form-new-category" class="new-category-form">
+      <input id="new-category-name" type="text" placeholder="Category name" required maxlength="24">
+      <input id="new-category-limit" type="number" inputmode="decimal" placeholder="Limit $" required min="0">
+      <button type="submit" class="btn-primary">Add</button>
+    </form>
+
+    <button id="btn-done-categories" class="btn-secondary full-width">Done</button>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" class="view hidden">
+    <div class="history-filters">
+      <select id="history-filter-category"></select>
+    </div>
+    <div id="history-list" class="history-list"></div>
+    <div id="history-empty" class="empty-state hidden"><p>No transactions yet.</p></div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-view="dashboard">Home</button>
+  <button class="tab-btn" data-view="categories">Categories</button>
+</nav>
+
+<button id="btn-fab" class="fab" aria-label="Add expense">+</button>
+
+<script src="app.js"></script>
+</body>
+</html>
