@@ -8,7 +8,7 @@
       { id: "food", name: "Food", limit: 450 },
       { id: "hobby", name: "Hobby items", limit: 250 },
       { id: "misc", name: "Anything else", limit: 150 },
-      { id: "savings", name: "Savings", limit: 1390 },
+      { id: "savings", name: "Savings", limit: 1390, excludeFromTotal: true },
     ],
     transactions: [],
   };
@@ -131,9 +131,23 @@
 
   // ---------- dashboard ----------
 
+  function overallSpentAndLimit() {
+    const excludedIds = data.categories.filter((c) => c.excludeFromTotal).map((c) => c.id);
+    const excludedLimitSum = data.categories
+      .filter((c) => c.excludeFromTotal)
+      .reduce((sum, c) => sum + (c.limit || 0), 0);
+
+    const spent = transactionsThisMonth()
+      .filter((t) => !excludedIds.includes(t.categoryId))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const limit = data.overallBudget ? Math.max(0, data.overallBudget - excludedLimitSum) : null;
+
+    return { spent, limit };
+  }
+
   function renderDashboard() {
-    const spent = totalSpentThisMonth();
-    const limit = data.overallBudget;
+    const { spent, limit } = overallSpentAndLimit();
 
     document.getElementById("overall-spent").textContent = `$${fmt(spent)}`;
     document.getElementById("overall-limit").textContent = limit
@@ -299,15 +313,26 @@
     editor.innerHTML = "";
     data.categories.forEach((cat) => {
       const row = document.createElement("div");
-      row.className = "category-edit-row";
+      row.className = "category-edit-row-wrap";
       row.innerHTML = `
-        <span class="cat-name">${escapeHtml(cat.name)}</span>
-        <input type="number" inputmode="decimal" min="0" value="${cat.limit}">
-        <button class="delete-btn" aria-label="Delete category">✕</button>
+        <div class="category-edit-row">
+          <span class="cat-name">${escapeHtml(cat.name)}</span>
+          <input type="number" inputmode="decimal" min="0" value="${cat.limit}">
+          <button class="delete-btn" aria-label="Delete category">✕</button>
+        </div>
+        <label class="exclude-toggle">
+          <input type="checkbox" ${cat.excludeFromTotal ? "checked" : ""}>
+          Exclude from overall total (e.g. savings, not real spending)
+        </label>
       `;
-      row.querySelector("input").addEventListener("change", (e) => {
+      row.querySelector('input[type="number"]').addEventListener("change", (e) => {
         cat.limit = parseFloat(e.target.value) || 0;
         saveData();
+      });
+      row.querySelector('input[type="checkbox"]').addEventListener("change", (e) => {
+        cat.excludeFromTotal = e.target.checked;
+        saveData();
+        renderDashboard();
       });
       row.querySelector(".delete-btn").addEventListener("click", () => {
         data.categories = data.categories.filter((c) => c.id !== cat.id);
